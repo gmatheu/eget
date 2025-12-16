@@ -373,6 +373,16 @@ func main() {
 		os.Exit(0)
 	}
 
+	if cli.UpgradeAll {
+		results, err := upgradeAllPackages(cli.DryRun)
+		if err != nil {
+			fatal(err)
+		}
+
+		displayUpgradeResults(results, cli.DryRun)
+		os.Exit(0)
+	}
+
 	target := ""
 
 	if len(args) > 0 {
