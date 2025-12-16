@@ -374,7 +374,7 @@ func main() {
 	}
 
 	if cli.UpgradeAll {
-		results, err := upgradeAllPackages(cli.DryRun)
+		results, err := upgradeAllPackages(cli.DryRun, cli.Interactive)
 		if err != nil {
 			fatal(err)
 		}

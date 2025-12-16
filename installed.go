@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 type InstalledEntry struct {
@@ -31,6 +32,11 @@ type InstalledEntry struct {
 
 type InstalledConfig struct {
 	Installed map[string]InstalledEntry `toml:"installed"`
+}
+
+type UpgradeCandidate struct {
+	Repo  string
+	Entry InstalledEntry
 }
 
 type UpgradeResult struct {
@@ -463,18 +469,32 @@ func updateInstalledRecord(repo, newTag string) error {
 }
 
 // upgradeAllPackages checks and upgrades all installed packages
-func upgradeAllPackages(dryRun bool) ([]UpgradeResult, error) {
+func upgradeAllPackages(dryRun, interactive bool) ([]UpgradeResult, error) {
 	config, err := loadInstalledConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]UpgradeResult, 0, len(config.Installed))
-
+	// Convert installed entries to candidates
+	candidates := make([]UpgradeCandidate, 0, len(config.Installed))
 	for repo, entry := range config.Installed {
-		result := UpgradeResult{Repo: repo, Current: entry.Tag}
+		candidates = append(candidates, UpgradeCandidate{
+			Repo:  repo,
+			Entry: entry,
+		})
+	}
 
-		needsUpgrade, latestTag, err := checkForUpgrade(entry)
+	// If interactive mode, let user select which packages to check
+	if interactive && len(candidates) > 0 {
+		candidates = selectPackagesInteractively(candidates)
+	}
+
+	results := make([]UpgradeResult, 0, len(candidates))
+
+	for _, candidate := range candidates {
+		result := UpgradeResult{Repo: candidate.Repo, Current: candidate.Entry.Tag}
+
+		needsUpgrade, latestTag, err := checkForUpgrade(candidate.Entry)
 		if err != nil {
 			result.Action = "error"
 			result.Error = err.Error()
@@ -486,13 +506,13 @@ func upgradeAllPackages(dryRun bool) ([]UpgradeResult, error) {
 			result.Latest = latestTag
 
 			if !dryRun {
-				err := performUpgrade(entry, latestTag)
+				err := performUpgrade(candidate.Entry, latestTag)
 				if err != nil {
 					result.Action = "error"
 					result.Error = err.Error()
 				} else {
 					// Update the installed record
-					updateErr := updateInstalledRecord(repo, latestTag)
+					updateErr := updateInstalledRecord(candidate.Repo, latestTag)
 					if updateErr != nil {
 						// Log but don't fail the upgrade
 						result.Error = fmt.Sprintf("upgrade succeeded but record update failed: %v", updateErr)
@@ -505,6 +525,138 @@ func upgradeAllPackages(dryRun bool) ([]UpgradeResult, error) {
 	}
 
 	return results, nil
+}
+
+// Bubbletea model for interactive package selection
+type packageSelectModel struct {
+	candidates []UpgradeCandidate
+	cursor     int
+	selected   map[int]bool
+	done       bool
+}
+
+func (m packageSelectModel) Init() tea.Cmd {
+	return nil
+}
+
+func (m packageSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q", "esc":
+			m.done = true
+			return m, tea.Quit
+		case "enter", " ":
+			// Toggle selection
+			if _, exists := m.selected[m.cursor]; exists {
+				delete(m.selected, m.cursor)
+			} else {
+				m.selected[m.cursor] = true
+			}
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+		case "down", "j":
+			if m.cursor < len(m.candidates)-1 {
+				m.cursor++
+			}
+		case "a", "ctrl+a":
+			// Select all
+			for i := range m.candidates {
+				m.selected[i] = true
+			}
+		case "n", "ctrl+n":
+			// Select none
+			m.selected = make(map[int]bool)
+		case "ctrl+d":
+			// Done
+			m.done = true
+			return m, tea.Quit
+		}
+	}
+	return m, nil
+}
+
+func (m packageSelectModel) View() string {
+	if m.done {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("Select packages to check for updates:\n\n")
+
+	for i, candidate := range m.candidates {
+		cursor := " "
+		if m.cursor == i {
+			cursor = ">"
+		}
+
+		checkbox := "[ ]"
+		if m.selected[i] {
+			checkbox = "[✓]"
+		}
+
+		current := candidate.Entry.Tag
+		if current == "" {
+			current = "unknown"
+		}
+
+		b.WriteString(fmt.Sprintf("%s %s %s (current: %s)\n", cursor, checkbox, candidate.Repo, current))
+	}
+
+	b.WriteString("\n")
+	b.WriteString("↑/↓ or j/k: navigate • space: toggle • a: select all • n: select none\n")
+	b.WriteString("ctrl+d or enter: confirm • q/esc: quit\n")
+
+	return b.String()
+}
+
+// selectPackagesInteractively allows users to select which packages to upgrade using bubbletea
+func selectPackagesInteractively(candidates []UpgradeCandidate) []UpgradeCandidate {
+	if len(candidates) == 0 {
+		return candidates
+	}
+
+	// Check if we're in an interactive terminal
+	if !isInteractiveTerminal() {
+		fmt.Fprintf(os.Stderr, "Warning: not running in interactive terminal, proceeding with all packages\n")
+		return candidates
+	}
+
+	// Create and run the bubbletea program
+	model := packageSelectModel{
+		candidates: candidates,
+		selected:   make(map[int]bool),
+		done:       false,
+	}
+
+	p := tea.NewProgram(model)
+	finalModel, err := p.Run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: interactive selection failed (%v), proceeding with all packages\n", err)
+		return candidates
+	}
+
+	m := finalModel.(packageSelectModel)
+
+	// Collect selected candidates
+	selected := make([]UpgradeCandidate, 0, len(m.selected))
+	for idx := range m.selected {
+		selected = append(selected, candidates[idx])
+	}
+
+	return selected
+}
+
+// isInteractiveTerminal checks if we're running in an interactive terminal
+func isInteractiveTerminal() bool {
+	// Check if stdout is a terminal
+	fileInfo, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fileInfo.Mode() & os.ModeCharDevice) != 0
 }
 
 // displayUpgradeResults shows the results of the upgrade-all operation
