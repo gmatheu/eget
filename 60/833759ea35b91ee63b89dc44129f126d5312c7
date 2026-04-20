@@ -1,0 +1,23 @@
+ai-specs/INDEX.md
+  c7ac56d320cef893 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.1",
+  "base_commit_sha": "60833759ea35b91ee63b89dc44129f126d5312c7",
+  "prompts": {
+    "c7ac56d320cef893": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_2545f6fcaffew48pc2nwNfWGQR-6c7245a1-f6b0-455d-9add-0de32c84b27b",
+        "model": "unknown"
+      },
+      "human_author": "Gonzalo Matheu (framework)",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 0,
+      "accepted_lines": 11,
+      "overriden_lines": 0
+    }
+  }
+}
