@@ -1,0 +1,63 @@
+installed.go
+  f9e2615d8c266875 439-449
+  16a90500334620a3 777,779-780
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.1",
+  "base_commit_sha": "bb0ac9579359eb72b7f2db3a26e21a709d05fd14",
+  "prompts": {
+    "16a90500334620a3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_25451534dffeVocU2Fl1yTXLVa-0f65aa22-a5dc-4f48-b3e1-b25a5288b15c",
+        "model": "unknown"
+      },
+      "human_author": "Gonzalo Matheu (framework)",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 3,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    },
+    "95066576403652dc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_2544d38a1ffeq9JxJv08WkPqJo-8fa5fca5-3c2a-4e5c-9b9a-2c8952746d72",
+        "model": "unknown"
+      },
+      "human_author": "Gonzalo Matheu (framework)",
+      "messages": [],
+      "total_additions": 75,
+      "total_deletions": 0,
+      "accepted_lines": 75,
+      "overriden_lines": 0
+    },
+    "a00cb569e7c0bc8d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_25432b007ffejacnIKg8R6LM2t-0194ee63-3af2-4a04-8655-fdad1df63b8a",
+        "model": "unknown"
+      },
+      "human_author": "Gonzalo Matheu (framework)",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    },
+    "f9e2615d8c266875": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_2544d38a1ffeq9JxJv08WkPqJo-50cd329b-9b5b-4925-a619-11f327de1c16",
+        "model": "unknown"
+      },
+      "human_author": "Gonzalo Matheu (framework)",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 3,
+      "accepted_lines": 11,
+      "overriden_lines": 0
+    }
+  }
+}
