@@ -436,9 +436,17 @@ func performUpgrade(entry InstalledEntry, newTag string) error {
 		args = append(args, "--quiet")
 	}
 
-	if assets, ok := opts["asset"].([]interface{}); ok && len(assets) > 0 {
-		for _, asset := range assets {
-			if assetStr, ok := asset.(string); ok {
+	// Handle asset filters - support both []interface{} (from memory) and []string (from TOML decode)
+	if assetsRaw, ok := opts["asset"]; ok {
+		switch assets := assetsRaw.(type) {
+		case []interface{}:
+			for _, asset := range assets {
+				if assetStr, ok := asset.(string); ok {
+					args = append(args, "--asset", assetStr)
+				}
+			}
+		case []string:
+			for _, assetStr := range assets {
 				args = append(args, "--asset", assetStr)
 			}
 		}
@@ -766,10 +774,10 @@ func (m *packageSelectModel) View() string {
 
 	b.WriteString("\n")
 	if m.searching {
-		b.WriteString("↑/↓: navigate items • space: toggle • enter: keep filter • esc: clear filter\n")
+		b.WriteString("↑/↓: navigate items • space/enter: toggle • enter: keep filter • esc: clear filter\n")
 	} else {
-		b.WriteString("↑/↓ or j/k: navigate • /: search • space: toggle • a: select all • n: select none\n")
-		b.WriteString("ctrl+d or enter: confirm • q/esc: quit\n")
+		b.WriteString("↑/↓ or j/k: navigate • /: search • space/enter: toggle • a: select all • n: select none\n")
+		b.WriteString("ctrl+d: confirm • q/esc: quit\n")
 	}
 
 	return b.String()
